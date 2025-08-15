@@ -192,31 +192,72 @@ async function createAndGoToCart() {
   }
 }
 
-function addToCart(productId, productTitle) {
-  const cartId = localStorage.getItem('currentCartId');
+async function addToCart(productId, productTitle) {
+  let cartId = localStorage.getItem('currentCartId');
   
+  // Si no hay carrito, crear uno primero
   if (!cartId) {
-    Swal.fire({
-      icon: 'info',
-      title: 'Necesitas un carrito',
-      text: 'Primero debes crear un carrito',
-      showCancelButton: true,
-      confirmButtonText: 'Crear carrito',
-      cancelButtonText: 'Cancelar'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        createAndGoToCart();
+    try {
+      const cartResponse = await fetch('/create-cart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const cartData = await cartResponse.json();
+      
+      if (cartData.status === 'success') {
+        cartId = cartData.cartId;
+        localStorage.setItem('currentCartId', cartId);
+      } else {
+        throw new Error('No se pudo crear el carrito');
       }
-    });
-    return;
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo crear el carrito: ' + error.message
+      });
+      return;
+    }
   }
   
-  Swal.fire({
-    icon: 'success',
-    title: 'Producto agregado',
-    text: `${productTitle} agregado al carrito`,
-    showConfirmButton: false,
-    timer: 1500
-  });
-}
-</script>
+  // Agregar producto al carrito
+  try {
+    const response = await fetch(`/api/carts/${cartId}/product/${productId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ quantity: 1 })
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      Swal.fire({
+        icon: 'success',
+        title: '¡Producto agregado!',
+        text: `${productTitle} ha sido agregado al carrito`,
+        showCancelButton: true,
+        confirmButtonText: 'Ver carrito',
+        cancelButtonText: 'Seguir comprando',
+        timer: 3000,
+        timerProgressBar: true
+      }).then((result) => {
+        if (result.isConfirmed) {
+          window.location.href = `/carts/${cartId}`;
+        }
+      });
+    } else {
+      throw new Error(data.message);
+    }
+  } catch (error) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'No se pudo agregar el producto: ' + error.message
+    });
+  }
+}</script>
