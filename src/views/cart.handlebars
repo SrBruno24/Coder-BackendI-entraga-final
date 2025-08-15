@@ -1,0 +1,339 @@
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">{{title}}</h1>
+        <div>
+          <a href="/products" class="btn btn-outline-primary me-2">
+            <i class="fas fa-arrow-left"></i> Seguir comprando
+          </a>
+          {{#if cart.products.length}}
+          <button class="btn btn-danger" onclick="clearCart('{{cartId}}')">
+            <i class="fas fa-trash"></i> Vaciar carrito
+          </button>
+          {{/if}}
+        </div>
+      </div>
+
+      {{#if cart.products.length}}
+      <div class="row">
+        <div class="col-lg-8">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="fas fa-shopping-cart"></i> 
+                Productos en tu carrito ({{cart.products.length}} items)
+              </h5>
+            </div>
+            <div class="card-body p-0">
+              {{#each cart.products}}
+              <div class="cart-item border-bottom p-3" id="item-{{product._id}}">
+                <div class="row align-items-center">
+                  <div class="col-md-2">
+                    {{#if product.thumbnails.[0]}}
+                    <img src="{{product.thumbnails.[0]}}" class="img-fluid rounded" alt="{{product.title}}" style="max-height: 80px;">
+                    {{else}}
+                    <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 80px; width: 80px;">
+                      <i class="fas fa-image text-muted"></i>
+                    </div>
+                    {{/if}}
+                  </div>
+                  <div class="col-md-4">
+                    <h6 class="mb-1">{{product.title}}</h6>
+                    <small class="text-muted">{{product.category}}</small>
+                    <br>
+                    <small class="text-muted">Código: {{product.code}}</small>
+                  </div>
+                  <div class="col-md-2 text-center">
+                    <span class="fw-bold">{{formatPrice product.price}}</span>
+                  </div>
+                  <div class="col-md-2 text-center">
+                    <div class="input-group input-group-sm">
+                      <button class="btn btn-outline-secondary" type="button" onclick="updateQuantity('{{../../cartId}}', '{{product._id}}', {{quantity}}, -1)">
+                        <i class="fas fa-minus"></i>
+                      </button>
+                      <input type="number" class="form-control text-center" value="{{quantity}}" min="1" id="qty-{{product._id}}" onchange="setQuantity('{{../../cartId}}', '{{product._id}}', this.value)">
+                      <button class="btn btn-outline-secondary" type="button" onclick="updateQuantity('{{../../cartId}}', '{{product._id}}', {{quantity}}, 1)">
+                        <i class="fas fa-plus"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="col-md-1 text-center">
+                    <span class="fw-bold">{{formatPrice (multiply product.price quantity)}}</span>
+                  </div>
+                  <div class="col-md-1 text-center">
+                    <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart('{{../../cartId}}', '{{product._id}}', '{{product.title}}')">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              {{/each}}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="fas fa-calculator"></i> Resumen del pedido
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="d-flex justify-content-between mb-3">
+                <span>Subtotal:</span>
+                <span id="subtotal">{{formatPrice total}}</span>
+              </div>
+              <div class="d-flex justify-content-between mb-3">
+                <span>Envío:</span>
+                <span class="text-success">Gratis</span>
+              </div>
+              <hr>
+              <div class="d-flex justify-content-between mb-3">
+                <strong>Total:</strong>
+                <strong class="text-primary" id="total">{{formatPrice total}}</strong>
+              </div>
+              <button class="btn btn-success w-100 mb-3" onclick="proceedToCheckout()">
+                <i class="fas fa-credit-card"></i> Proceder al pago
+              </button>
+              <small class="text-muted text-center d-block">
+                <i class="fas fa-lock"></i> Compra segura y protegida
+              </small>
+            </div>
+          </div>
+
+          <div class="card mt-3">
+            <div class="card-body">
+              <h6 class="card-title">
+                <i class="fas fa-info-circle"></i> Información del carrito
+              </h6>
+              <p class="card-text">
+                <small class="text-muted">ID del carrito: {{cartId}}</small>
+              </p>
+              <button class="btn btn-sm btn-outline-secondary w-100" onclick="copyCartId('{{cartId}}')">
+                <i class="fas fa-copy"></i> Copiar ID del carrito
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {{else}}
+      <div class="text-center py-5">
+        <div class="mb-4">
+          <i class="fas fa-shopping-cart text-muted" style="font-size: 4rem;"></i>
+        </div>
+        <h3 class="text-muted">Tu carrito está vacío</h3>
+        <p class="text-muted mb-4">¡Descubre nuestros increíbles productos y comienza a llenar tu carrito!</p>
+        <a href="/products" class="btn btn-primary">
+          <i class="fas fa-shopping-bag"></i> Ir de compras
+        </a>
+      </div>
+      {{/if}}
+    </div>
+  </div>
+</div>
+
+<script>
+async function updateQuantity(cartId, productId, currentQty, change) {
+  const newQty = currentQty + change;
+  
+  if (newQty < 1) return;
+  
+  try {
+    const response = await fetch(`/api/carts/${cartId}/products/${productId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ quantity: newQty })
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      location.reload();
+    } else {
+      throw new Error(data.message);
+    }
+  } catch (error) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'No se pudo actualizar la cantidad: ' + error.message
+    });
+  }
+}
+
+async function setQuantity(cartId, productId, quantity) {
+  const qty = parseInt(quantity);
+  
+  if (qty < 1 || isNaN(qty)) {
+    document.getElementById(`qty-${productId}`).value = 1;
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/carts/${cartId}/products/${productId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ quantity: qty })
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      location.reload();
+    } else {
+      throw new Error(data.message);
+    }
+  } catch (error) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'No se pudo actualizar la cantidad: ' + error.message
+    });
+  }
+}
+
+async function removeFromCart(cartId, productId, productTitle) {
+  const result = await Swal.fire({
+    title: '¿Estás seguro?',
+    text: `¿Quieres eliminar "${productTitle}" del carrito?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar'
+  });
+
+  if (result.isConfirmed) {
+    try {
+      const response = await fetch(`/api/carts/${cartId}/products/${productId}`, {
+        method: 'DELETE'
+      });
+      
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        Swal.fire({
+          icon: 'success',
+          title: 'Producto eliminado',
+          text: `${productTitle} ha sido eliminado del carrito`,
+          showConfirmButton: false,
+          timer: 1500
+        }).then(() => {
+          location.reload();
+        });
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo eliminar el producto: ' + error.message
+      });
+    }
+  }
+}
+
+async function clearCart(cartId) {
+  const result = await Swal.fire({
+    title: '¿Vaciar carrito?',
+    text: 'Esta acción eliminará todos los productos del carrito',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Sí, vaciar carrito',
+    cancelButtonText: 'Cancelar'
+  });
+
+  if (result.isConfirmed) {
+    try {
+      const response = await fetch(`/api/carts/${cartId}`, {
+        method: 'DELETE'
+      });
+      
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        Swal.fire({
+          icon: 'success',
+          title: 'Carrito vaciado',
+          text: 'Todos los productos han sido eliminados',
+          showConfirmButton: false,
+          timer: 1500
+        }).then(() => {
+          location.reload();
+        });
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo vaciar el carrito: ' + error.message
+      });
+    }
+  }
+}
+
+function copyCartId(cartId) {
+  navigator.clipboard.writeText(cartId).then(() => {
+    Swal.fire({
+      icon: 'success',
+      title: 'ID copiado',
+      text: 'El ID del carrito ha sido copiado al portapapeles',
+      showConfirmButton: false,
+      timer: 1500
+    });
+  }).catch(() => {
+    const textArea = document.createElement('textarea');
+    textArea.value = cartId;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    
+    Swal.fire({
+      icon: 'success',
+      title: 'ID copiado',
+      text: 'El ID del carrito ha sido copiado',
+      showConfirmButton: false,
+      timer: 1500
+    });
+  });
+}
+
+function proceedToCheckout() {
+  Swal.fire({
+    icon: 'info',
+    title: 'Función en desarrollo',
+    text: 'El sistema de pagos se implementará en la próxima versión',
+    confirmButtonText: 'Entendido'
+  });
+}
+
+localStorage.setItem('currentCartId', '{{cartId}}');
+</script>
+
+<style>
+.cart-item:hover {
+  background-color: #f8f9fa;
+}
+
+.input-group-sm .form-control {
+  max-width: 60px;
+}
+
+.cart-item .btn-outline-danger:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s;
+}
+</style>
