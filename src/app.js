@@ -74,9 +74,9 @@ app.engine('handlebars', hbs.engine);
 app.set('view engine', 'handlebars');
 app.set('views', join(__dirname, 'views'));
 
+
 app.use('/api/products', productsRouter);
 app.use('/api/carts', cartsRouter);
-app.use('/', viewsRouter);
 
 app.post('/create-cart', async (req, res) => {
   try {
@@ -93,6 +93,8 @@ app.post('/create-cart', async (req, res) => {
     });
   }
 });
+
+app.use('/', viewsRouter);
 
 io.on('connection', (socket) => {
   console.log('Usuario conectado:', socket.id);
@@ -189,7 +191,7 @@ app.use('*', (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-  console.log(`📱 Visita: http://localhost:${PORT}`);
+  console.log(`📱 Visita: http://localhost:8080`);
 });
 
 process.on('SIGINT', () => {
